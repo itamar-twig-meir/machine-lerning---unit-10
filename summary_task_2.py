@@ -146,7 +146,7 @@ print ("predictions = " + str(predict(X, W, b)))
 
 W, b = train(final_train_set_x, final_train_set_y, num_iterations=4000, learning_rate=0.005)
 Y_prediction_test = predict(final_test_set_x, W, b)
-Y_prediction_train = predict(final_train_set_y, W, b)
+Y_prediction_train = predict(final_train_set_x, W, b)
 # Print train/test Errors
 print("train accuracy: {} %".format(100 - np.mean(np.abs(Y_prediction_train - final_train_set_y)) * 100))
-print("test accuracy: {} %".format(100 - np.mean(np.abs(Y_prediction_test - final_test_set_x)) * 100))
+print("test accuracy: {} %".format(100 - np.mean(np.abs(Y_prediction_test - final_test_set_y)) * 100))
