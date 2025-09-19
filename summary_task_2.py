@@ -54,7 +54,7 @@ final_test_set_y = np.array(test_set_y)
 final_train_set_y = final_train_set_y.reshape(1,final_train_set_y.shape[0])
 final_test_set_y = final_test_set_y.reshape(1,final_test_set_y.shape[0])
 
-# tests
+
 """
 for i in range(3):
     print(str(flattened_train_set_x[i][0]) + " = " + str(train_set_x_orig[0][0][0][i]))
@@ -62,7 +62,7 @@ print ("train_set_x_flatten shape: " + str( flattened_train_set_x.shape))
 print ("train_set_y shape: " + str(final_train_set_y.shape))
 print ("test_set_x_flatten shape: " + str( flattened_test_set_x.shape))
 print ("test_set_y shape: " + str(final_test_set_y.shape))
-"""
+""" # tests
 
 # endregion
 
@@ -70,14 +70,14 @@ print ("test_set_y shape: " + str(final_test_set_y.shape))
 #region function def
 
 def sigmoid (z):
+
     return 1/(1+np.exp(-z))
 
 # sigmoid test - print ("sigmoid([0, 2]) = " + str(sigmoid(np.array([0,2]))))
 
 def initialize_with_zeros(dim):
-
     w = np.zeros((dim, 1))
-    return w.T, 0
+    return w, 0
 
 """ 
 W, b = initialize_with_zeros(2)
@@ -87,15 +87,66 @@ print ("b = " + str(b))
 
 def forward_propagation(X, Y, w, b):
 
-    y_pred = sigmoid((np.dot(np.transpose(w), X) + b))
-    mistake_avr = np.sum( -(Y* np.log(y_pred) + (1 - Y)* np.log(1 - y_pred)))
+    y_pred = sigmoid(np.dot(w.T, X) + b)
+    mistake_avr = np.sum( - (Y* np.log(y_pred) + (1 - Y)* np.log(1 - y_pred)))
 
     return y_pred, mistake_avr / X.shape[1]
 
+""" 
 w, b, X, Y = np.array([[1.],[2.]]), 2., np.array([[1.,2.,-1.], [3.,4.,-3.2]]), np.array([1,0,1])
 A, cost = forward_propagation(X, Y, w, b)
 print ("cost = " + str(cost))
+""" # forward_propagation tests
 
+def backward_propagation(X, Y, A):
+    m = X.shape[1]
+    dw = (1 / m) * np.dot( X , (A - Y).T)
+    db = (1 / m) * np.sum(A - Y)
+
+    return dw, db
+
+"""
+w, b, X, Y = np.array([[1.],[2.]]), 2., np.array([[1.,2.,-1.], [3.,4.,-3.2]]), np.array([1,0,1])
+A, cost = forward_propagation(X, Y, w, b)
+dw, db = backward_propagation(X, Y, A)
+print ("dW = " + str(dw))
+print ("db = " + str(db))
+""" # backward_propagation tests
+
+def train(X, Y, num_iterations, learning_rate):
+    w, b = initialize_with_zeros(X.shape[0])
+
+    for i in range(num_iterations):
+        A, J = forward_propagation(X,Y, w, b)
+        dw, db = backward_propagation(X,Y, A)
+        w -= dw*learning_rate
+        b -= db*learning_rate
+    return w,b
+
+"""
+X, Y = np.array([[1.,2.,-1.],[3.,4.,-3.2]]), np.array([1,0,1])
+W, b = train(X, Y, num_iterations= 100, learning_rate = 0.009)
+print ("W = " + str(W))
+print ("b = " + str(b))
+""" # train tests
+
+def predict(X, W, b):
+    y_pred = sigmoid(np.dot(W.T, X) + b)
+
+    return (y_pred > 0.5).astype(int)
+
+""" 
+W = np.array([[0.1124579],[0.23106775]])
+b = -0.3
+X = np.array([[1.,-1.1,-3.2],[1.2,2.,0.1]])
+print ("predictions = " + str(predict(X, W, b)))
+"""# presict test
 
 #endregion
 
+W, b = train(final_train_set_x, final_train_set_y, num_iterations=4000, learning_rate=0.005)
+Y_prediction_test = predict(final_test_set_x, W, b)
+Y_prediction_train = predict(final_train_set_y, W, b)
+# Print train/test Errors
+print("train accuracy: {} %".format(100 - np.mean(np.abs(Y_prediction_train - final_train_set_y)) * 100))
+print("test accuracy: {} %".format(100 - np.mean(np.abs(Y_prediction_test - final_test_set_x)) * 100))
