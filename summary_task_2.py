@@ -1,20 +1,14 @@
 import numpy as np
-import matplotlib.pyplot as plt
-import h5py
-import scipy
-from numpy.ma.core import reshape
-from scipy import ndimage
-from PIL import Image
 from unit10 import c1w2_utils as u10
 
 
+#region uploading and initializing data
 train_set_x_orig, train_set_y, test_set_x_orig, test_set_y, classes = u10.load_datasetC1W2()
-
 m_train = train_set_x_orig.shape[0]
 m_test = test_set_x_orig.shape[0]
 num_px = train_set_x_orig[0].shape[0]
 num_rgb = np.prod(train_set_x_orig[0].shape)
-
+#endregion
 
 """""
 index = 0
@@ -113,14 +107,28 @@ print ("dW = " + str(dw))
 print ("db = " + str(db))
 """ # backward_propagation tests
 
-def train(X, Y, num_iterations, learning_rate):
+def train(X, Y, num_iterations, learning_rate, is_adaptive = False):
     w, b = initialize_with_zeros(X.shape[0])
+
+    learning_rate_b = 1
+    learning_rate_w = 1
+    old_dw = np.zeros_like(w)
+    old_db = 1
+    if is_adaptive:
+        learning_rate_b = 0.001
+        learning_rate_w = np.full_like(w, 0.001)
+        learning_rate = 1
 
     for i in range(num_iterations):
         A, J = forward_propagation(X,Y, w, b)
         dw, db = backward_propagation(X,Y, A)
-        w -= dw*learning_rate
-        b -= db*learning_rate
+
+        if is_adaptive:
+            learning_rate_w, learning_rate_b = adaptive_learning(dw, old_dw, db, old_db, learning_rate_b, learning_rate_w)
+        w -= dw * learning_rate * learning_rate_w
+        b -= db * learning_rate * learning_rate_b
+        old_dw = dw
+        old_db = db
     return w,b
 
 """
@@ -140,13 +148,34 @@ W = np.array([[0.1124579],[0.23106775]])
 b = -0.3
 X = np.array([[1.,-1.1,-3.2],[1.2,2.,0.1]])
 print ("predictions = " + str(predict(X, W, b)))
-"""# presict test
+"""# predict test
+
+def adaptive_learning (dw, old_dw, db, old_db, learning_rate_b, learning_rate_w):
+
+    sign_product = np.sign(dw) * np.sign(old_dw)
+    learning_rate_w[sign_product > 0] *= 1.1
+    learning_rate_w[sign_product < 0] *= 0.5
+
+    if np.sign(db) == np.sign(old_db):
+        learning_rate_b *= 1.1
+    else:
+        learning_rate_b *= 0.5
+
+    max_lr = 0.1
+    min_lr = 1e-6  # 0.000001
+
+    learning_rate_w = np.clip(learning_rate_w, min_lr, max_lr)
+    learning_rate_b = np.clip(learning_rate_b, min_lr, max_lr)
+    return learning_rate_w, learning_rate_b
 
 #endregion
 
-W, b = train(final_train_set_x, final_train_set_y, num_iterations=4000, learning_rate=0.005)
+
+
+W, b = train(final_train_set_x, final_train_set_y, num_iterations=4000, learning_rate=0.005, is_adaptive=True)
 Y_prediction_test = predict(final_test_set_x, W, b)
 Y_prediction_train = predict(final_train_set_x, W, b)
 # Print train/test Errors
 print("train accuracy: {} %".format(100 - np.mean(np.abs(Y_prediction_train - final_train_set_y)) * 100))
 print("test accuracy: {} %".format(100 - np.mean(np.abs(Y_prediction_test - final_test_set_y)) * 100))
+# final tests
