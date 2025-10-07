@@ -75,7 +75,7 @@ num of iteration change + learning rate up -
 
 
 num of iteration up + learning rate down -
-# didnt finish 
+
 | num of iterations  | learning rate | Accuracy | cost after 99% |
 |--------------------|:-------------:|:--------:|----------------|
 | 10000              |     0.01      |   87%    | 0.313          |
