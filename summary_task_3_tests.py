@@ -163,8 +163,8 @@ print ('Accuracy of logistic regression: %d ' % float((np.dot(Y,LR_predictions) 
 
 #region Make the neural network
 
-hidden_layer = DLLayer("Hidden1", 9, (2,) ,"tanh", learning_rate= 0.1)
-output_Layer = DLLayer("Output Layer", 1, (3,) ,"sigmoid", learning_rate=0.5)
+hidden_layer = DLLayer("Hidden1", 4, (2,) ,"tanh", learning_rate= 0.1)
+output_Layer = DLLayer("Output Layer", 1, (4,) ,"sigmoid", learning_rate=0.5)
 
 
 

@@ -5,12 +5,10 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="3786c06a-7afc-45f3-97cc-4e0e7656d410" name="Changes" comment="Create summary_task_2.py">
-      <change afterPath="$PROJECT_DIR$/shallow_network_tuning_(S_taks_3).md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/summary_task_3_tests.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/DLLayer_and_DLModel_deep_network.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/summary_task_4_tests.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/DLLayer.py" beforeDir="false" afterPath="$PROJECT_DIR$/DLLayer_and_DLModel.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Sum_task_3_tests.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/summary_task_3.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/summary_task_3_tests.py" beforeDir="false" afterPath="$PROJECT_DIR$/summary_task_3_tests.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -219,7 +217,15 @@
       <option name="project" value="LOCAL" />
       <updated>1759310372847</updated>
     </task>
-    <option name="localTasksCounter" value="10" />
+    <task id="LOCAL-00010" summary="Create summary_task_2.py">
+      <option name="closed" value="true" />
+      <created>1759825368974</created>
+      <option name="number" value="00010" />
+      <option name="presentableId" value="LOCAL-00010" />
+      <option name="project" value="LOCAL" />
+      <updated>1759825368975</updated>
+    </task>
+    <option name="localTasksCounter" value="11" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
