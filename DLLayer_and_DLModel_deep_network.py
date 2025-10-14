@@ -1,12 +1,13 @@
 from collections import defaultdict
 import numpy as np
 import matplotlib.pyplot as plt
+import os
 import h5py
 import scipy
 from numpy.ma.core import reshape
 from scipy import ndimage
 from PIL import Image
-from unit10 import c1w2_utils as u10
+
 
 
 class DLLayer:
@@ -28,14 +29,6 @@ class DLLayer:
             self.adaptive_cont = 1.2
             self.adaptive_switch = 0.5
         self.init_weights(W_initialization)
-
-    def init_weights(self, W_initialization):
-        self.b = np.zeros((self.num_units, 1), dtype=float)
-
-        if(self.W_initialization == "random"):
-            self.W = np.random.randn(self.num_units, *(self.input_shape)) * self.random_scale
-        else:
-            self.W = np.zeros((self.num_units, *self.input_shape), dtype=float)
 
     def __str__(self):
         s = self.name + " Layer:\n"
@@ -59,6 +52,36 @@ class DLLayer:
         plt.title("W histogram")
         plt.show()
         return s
+
+    def init_weights(self, W_initialization):
+        self.b = np.zeros((self.num_units, 1), dtype=float)
+        #  note that there is probably a mistake in the presentation. its said that in Xavier and He
+        #  it should be sum(self.input_shape) and not np.prod(self.input_shape). This ignores the
+        #  possibility of pictures and more complex inputs that need to be multiplied.
+        match W_initialization:
+            case "random":
+                self.W = np.random.randn(self.num_units, *(self.input_shape)) * self.random_scale
+            case "xavier" | "Xavier" :
+                self.W = np.random.randn(self.num_units, *(self.input_shape)) * np.sqrt(1 / np.prod(self.input_shape))
+            case "he" | "He":
+                self.W = np.random.randn(self.num_units, *(self.input_shape)) * np.sqrt(2 / np.prod(self.input_shape))
+            case "zeros":
+                self.W = np.zeros((self.num_units, *self.input_shape), dtype=float)
+            case _:
+                try:
+                    with h5py.File(W_initialization, 'r') as hf:
+                        self.W = hf['W'][:]
+                        self.b = hf['b'][:]
+                except (FileNotFoundError):
+                    raise NotImplementedError("Unrecognized initialization:", W_initialization)
+
+    def save_weights(self, path,file_name):
+        if not os.path.exists(path):
+            os.makedirs(path)
+
+        with h5py.File(path + "/" + file_name + '.h5', 'w') as hf:
+            hf.create_dataset("W", data=self.W)
+            hf.create_dataset("b", data=self.b)
 
     def forward_propagation(self, A_prev, is_predict):
         self.A_prev = np.array(A_prev, copy=True)
@@ -130,10 +153,14 @@ class DLLayer:
     # region backward_activation
     def activation_backward(self, dA):
         match self.activation:
-            case "sigmoid" | "trim_sigmoid":
+            case "sigmoid":
                 return self.sigmoid_backward(dA)
-            case "tanh" | "trim_tanh":
+            case "trim_sigmoid":
+                return self.trim_sigmoid_backward(dA)
+            case "tanh":
                 return self.tanh_backward(dA)
+            case "trim_tanh":
+                return self.trim_tanh_backward(dA)
             case "relu":
                 return self.relu_backward(dA)
             case "leaky_relu":
@@ -147,9 +174,19 @@ class DLLayer:
         dZ = dA * A * (1 - A)
         return dZ
 
+    def trim_sigmoid_backward(self, dA):
+        A = self.trim_sigmoid(self.Z)
+        dZ = dA * A * (1 - A)
+        return dZ
+
     def tanh_backward(self, dA):
         A = self.tanh(self.Z)
         dZ = dA * (1 - A**2)
+        return dZ
+
+    def trim_tanh_backward(self, dA):
+        A = self.trim_tanh(self.Z)
+        dZ = dA * (1 - A ** 2)
         return dZ
 
     def relu_backward(self, dA):
@@ -177,7 +214,6 @@ class DLLayer:
 
 
 
-
 class DLModel:
 
     def __init__(self, name = "Model" ):
@@ -185,12 +221,36 @@ class DLModel:
         self.is_compiled = False
         self.layers = [None]
 
-    def add_layer(self, layer):
-        if(isinstance(layer ,DLLayer)):
-            self.layers.append(layer)
-        else:
-            print("error, tried adding a non layer object to layers array")
+    def __str__(self):
+        s = self.name + " description:\n\tnum_layers: " + str(len(self.layers)) + "\n"
+        if self.is_compiled:
+            s += "\tCompilation parameters:\n"
+            s += "\t\tprediction threshold: " + str(self.threshold) + "\n"
+            s += "\t\tloss function: " + self.loss + "\n\n"
 
+        for i in range(1, len(self.layers)):
+            s += "\tLayer " + str(i) + ":" + str(self.layers[i]) + "\n"
+        return s
+
+    def add_layer(self, layers):
+        if(isinstance(layers ,DLLayer)):
+            self.layers.append(layers)
+        elif(isinstance(layers,list)):
+            for layer in layers:
+                if(not isinstance(layer,DLLayer)):
+                    print("error, tried adding a non layer object to layers array")
+                else:
+                    self.layers.append(layer)
+
+
+    def loss_func(self, loss):
+        match loss:
+            case "squared_difference":
+                return self.squared_difference, self.squared_difference_backward
+            case "cross_entropy":
+                return self.cross_entropy, self.cross_entropy_backward
+
+    # region loss functions
     def squared_difference(self, AL, Y):
 
         return ((AL - Y) ** 2)
@@ -206,18 +266,13 @@ class DLModel:
     def cross_entropy_backward(self, AL, Y):
 
         return np.where(Y == 0, 1/(1-AL), -1/AL)
-
-    def loss_func(self, loss):
-        match loss:
-            case "squared_difference":
-                return self.squared_difference, self.squared_difference_backward
-            case "cross_entropy":
-                return self.cross_entropy, self.cross_entropy_backward
+    #endregion
 
     def compile(self, loss, threshold=0.5):
         self.loss = loss
         self.threshold = threshold
         self.is_compiled = True
+
         self.loss_forward, self.loss_backward = self.loss_func(loss)
 
     def compute_cost(self, AL, Y):
@@ -252,17 +307,9 @@ class DLModel:
             AL = layer.forward_propagation(AL, is_predict=True)
         return np.where(AL > self.threshold, True, False)
 
-    def __str__(self):
-        s = self.name + " description:\n\tnum_layers: " + str(len(self.layers) - 1) + "\n"
-        if self.is_compiled:
-            s += "\tCompilation parameters:\n"
-            s += "\t\tprediction threshold: " + str(self.threshold) + "\n"
-            s += "\t\tloss function: " + self.loss + "\n\n"
-
-        for i in range(1, len(self.layers)):
-            s += "\tLayer " + str(i) + ":" + str(self.layers[i]) + "\n"
-        return s
-
-
-
+    def save_weights(self, path):
+        if not os.path.exists(path):
+            os.makedirs(path)
+        for i, layer in enumerate(self.layers[1:]):
+            layer.save_weights(path, "layer" + str(i + 1))
 

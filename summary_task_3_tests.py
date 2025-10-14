@@ -133,7 +133,7 @@ X = np.random.randn(12288,10) * 256
 
 np.random.seed(1)
 
-# region idk, shape stuff
+# region initialization
 #plt.figure(1)
 X, Y = u10.load_planar_dataset()
 #plt.scatter(X[0, :], X[1, :], c=Y[0, :], s=40, cmap=plt.cm.Spectral);

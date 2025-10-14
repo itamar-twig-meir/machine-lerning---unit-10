@@ -34,6 +34,7 @@ print ("test_set_y shape: " + str(test_set_y.shape))
 # region flattening the pictures + normalization
 
 # flattening the arrays so they contain a list of pictures as a long list of rgb values.
+
 flattened_train_set_x = train_set_x_orig.reshape(train_set_x_orig.shape[0], -1).T
 flattened_test_set_x = test_set_x_orig.reshape(test_set_x_orig.shape[0], -1).T
 
