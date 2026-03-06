@@ -8,7 +8,7 @@ from numpy.ma.core import reshape
 from scipy import ndimage
 from PIL import Image
 from sklearn.metrics import classification_report, confusion_matrix
-
+import math
 
 
 
@@ -254,12 +254,12 @@ class DLLayer:
             # 5. Store current gradients for next time
             self.prev_dW = np.copy(self.dW)
             self.prev_db = np.copy(self.db)
-
+"""
             self.count += 1
             if self.count % 100 == 0:
-                print("YOU FORGOT TO CHECK WHY YOUR ADAPTIVE IMPLEMENTATION WAS WRONG")
+                print("YOU FORGOT TO CHECK WHY YOUR ADAPTIVE IMPLEMENTATION WAS WRONG")"""
 
-    """def update_parameters(self):
+"""def update_parameters(self):
         if self.optimization == "none":
             self.W -= self.dW * self.learning_rate
             self.b -= self.db * self.learning_rate
@@ -278,10 +278,12 @@ class DLLayer:
 
 class DLModel:
 
-    def __init__(self, name = "Model" ):
+    def __init__(self, name = "Model",  ):
         self.name = name
         self.is_compiled = False
         self.layers = [None]
+        self.inject_str_func = None
+        self.iTrainable = self
 
     def __str__(self):
         s = self.name + " description:\n\tnum_layers: " + str(len(self.layers)) + "\n"
@@ -351,27 +353,36 @@ class DLModel:
         m = Y.shape[1]
         return np.sum(self.loss_forward(AL, Y)) / m
 
-    def train(self, X, Y, num_iterations):
-        print_ind = max(num_iterations // 100, 1)
-        L = len(self.layers)
+
+    def train(self, X, Y, num_epocs, mini_batch_size=64):
         costs = []
-        for i in range(num_iterations):
-            # forward propagation
-            Al = X
-            for l in range(1, L):
-                Al = self.layers[l].forward_propagation(Al, False)
-                # backward propagation
-            dAl = self.loss_backward(Al, Y)
-            for l in reversed(range(1, L)):
-                dAl = self.layers[l].backward_propagation(dAl)
-                # update parameters
-                self.layers[l].update_parameters()
-            # record progress
+        print_ind = max(num_epocs // 100, 1)
+        for i in range(num_epocs):
+            epoch_total_cost = 0
+            mini_batches = self.random_mini_batches(X, Y, mini_batch_size, i)
+
+            for mini_batch in mini_batches:
+                Al = mini_batch[0]
+                y = mini_batch[1]
+                predict = self.forward_propagation(Al)
+                self.backward_propagation(predict, y)
+                self.update_parameters()
+                epoch_total_cost += self.compute_cost(predict, y)
+
+            # Calculate the average cost for this epoch
+            avg_epoch_cost = epoch_total_cost / len(mini_batches)
+            costs.append(avg_epoch_cost)
+
             if i >= 0 and i % print_ind == 0:
-                J = self.compute_cost(Al, Y)
-                costs.append(J)
-                print("cost after ", str(i // print_ind), "%:", str(J))
+                print("cost after ", str(i // print_ind), "%:", str(avg_epoch_cost))
+
+        final_predict = self.forward_propagation(X)
+        costs.append(self.compute_cost(final_predict, Y))
         return costs
+
+
+
+
 
     def predict(self, X):
         AL = X
@@ -407,4 +418,47 @@ class DLModel:
         print("accuracy: ", str(right / len(Y[0])))
         print(confusion_matrix(prediction_index, Y_index))
 
+    @staticmethod
+    def random_mini_batches(X, Y, mini_batch_size = 64, seed = 0):
+        np.random.seed(seed)
+        m = Y.shape[1]
+        permutation = list(np.random.permutation(m))
+        shuffled_X = X[:, permutation]
+        shuffled_Y = Y[:, permutation].reshape((-1, m))
 
+        num_complete_minibatches = math.floor(m / mini_batch_size)
+        mini_batches=[]
+        for k in range(num_complete_minibatches):
+            mini_batch_X = shuffled_X[:, mini_batch_size * k: (k + 1) * mini_batch_size]
+            mini_batch_Y = shuffled_Y[:, mini_batch_size * k: (k + 1) * mini_batch_size]
+            mini_batch = (mini_batch_X, mini_batch_Y)
+            mini_batches.append(mini_batch)
+
+        if m % mini_batch_size != 0:
+            mini_batch_X = shuffled_X[:, num_complete_minibatches * mini_batch_size: m]
+            mini_batch_Y = shuffled_Y[:, num_complete_minibatches * mini_batch_size: m]
+            mini_batch = (mini_batch_X, mini_batch_Y)
+            mini_batches.append(mini_batch)
+
+        return mini_batches
+
+    def forward_propagation(self, X, is_predict=False):
+        A = X
+        for layer in self.layers[1:]:  # Skip the None at index 0
+            A = layer.forward_propagation(A, is_predict)
+        return A
+
+    def backward_propagation(self, AL, Y):
+        # 1. Compute the derivative of the loss with respect to the output AL
+        dA = self.loss_backward(AL, Y)
+
+        # 2. Propagate backward through layers in reverse order
+        for layer in reversed(self.layers[1:]):
+            dA = layer.backward_propagation(dA)
+
+    def update_parameters(self):
+        for layer in self.layers[1:]:
+            layer.update_parameters()
+
+    def set_train(self, mode):
+        self.train_mode = mode  # Helpful for future implementations like Dropout
